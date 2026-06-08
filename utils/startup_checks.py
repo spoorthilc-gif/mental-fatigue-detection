@@ -12,6 +12,8 @@ def check_model_file():
     return False, "Random Forest model binary missing! System will fall back to typing heuristics."
 
 def check_webcam_availability():
+    if os.getenv('RENDER') == 'true':
+        return False, "Webcam capture bypassed in cloud deployment environment."
     # Attempt to open default camera (index 0)
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():

@@ -896,7 +896,18 @@ async function initCharts() {
               webcamBadge.className = 'card-badge badge-yellow';
             }
           } else {
-            if (emptyStateEl) emptyStateEl.style.display = 'flex';
+            if (emptyStateEl) {
+              emptyStateEl.style.display = 'flex';
+              const titleEl = emptyStateEl.querySelector('.empty-title');
+              const descEl = emptyStateEl.querySelector('.empty-desc');
+              if (webcamData.cloud_mode) {
+                if (titleEl) titleEl.textContent = 'Webcam Offline (Cloud Mode)';
+                if (descEl) descEl.textContent = 'Physical camera sensors are disabled in cloud environments. FatigueAI has automatically activated simulated physiological telemetry and the Random Forest fallback model.';
+              } else {
+                if (titleEl) titleEl.textContent = 'Webcam Offline / Locked';
+                if (descEl) descEl.textContent = 'Connect a USB camera or allow browser permissions to track physical landmark telemetry.';
+              }
+            }
             if (webcamStreamEl) webcamStreamEl.style.display = 'none';
             webcamBadge.textContent = 'Inactive';
             webcamBadge.className = 'card-badge badge-gray';

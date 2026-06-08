@@ -30,7 +30,7 @@ flask-login==0.6.3
 python-dotenv==1.0.1
 gunicorn==23.0.0
 mediapipe==0.10.35
-opencv-python==4.13.0.92
+opencv-python-headless==4.13.0.92
 pynput==1.8.2
 cffi==2.0.0
 sounddevice==0.5.5

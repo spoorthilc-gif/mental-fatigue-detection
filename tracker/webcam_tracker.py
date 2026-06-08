@@ -51,6 +51,11 @@ class WebcamTracker:
             if self.running:
                 return
             
+            if os.getenv('RENDER') == 'true':
+                log_event("info", "Render cloud environment detected. Bypassing physical webcam capture thread.")
+                self.is_active = False
+                return
+            
             # Download model if not present locally
             if not os.path.exists(self.model_path):
                 log_event("info", f"Downloading MediaPipe Face Landmarker model from {self.model_url}...")

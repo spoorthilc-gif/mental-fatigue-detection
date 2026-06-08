@@ -163,7 +163,9 @@ def api_predict_fatigue():
 @login_required
 def api_webcam_status():
     """Return status and active metrics of the webcam tracker."""
-    return jsonify(webcam_tracker.get_metrics())
+    metrics = webcam_tracker.get_metrics()
+    metrics["cloud_mode"] = os.getenv('RENDER') == 'true'
+    return jsonify(metrics)
 
 
 @app.route('/video_feed')
