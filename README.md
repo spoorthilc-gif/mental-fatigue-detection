@@ -171,16 +171,28 @@ Bypass registration using the safe pre-seeded recruiter test credentials:
 
 FatigueAI is configured for instant cloud deployment (e.g. Render, Railway) via Gunicorn.
 
-### Render Deployment (Recommended)
-1. Create a **Web Service** on Render connected to your GitHub repo.
+### Live Production Deployment
+* **Render URL**: [https://mental-fatigue-detection.onrender.com](https://mental-fatigue-detection.onrender.com)
+
+### Render Deployment Steps
+1. Create a **Web Service** on Render connected to your GitHub repository.
 2. Set build command: `pip install -r requirements.txt`
 3. Set start command: `gunicorn app:app`
-4. Add environment variables: `SECRET_KEY`, `FLASK_DEBUG=False`, `DATABASE_URL=sqlite:///database/fatigue_analytics.db`.
+4. Configure the following environment variables in the Render settings:
+   - `RENDER` = `true` (Enables the cloud-mode headless fallback telemetry engine)
+   - `SECRET_KEY` = `your_custom_secure_secret_key`
+   - `FLASK_DEBUG` = `False`
+   - `DATABASE_URL` = `database/fatigue_analytics.db`
+
+### ☁️ Headless Cloud Mode Fallbacks
+When running on cloud virtual machines (which lack an attached physical webcam or an X11 GUI server for keyboard listeners), FatigueAI automatically activates the **Headless Cloud Mode** when `RENDER=true` is set.
+* **Webcam Bypass**: Physical `cv2.VideoCapture` calls are bypassed to prevent process hangs or hardware access exceptions. The dashboard renders a custom **Webcam Offline (Cloud Mode)** empty state.
+* **Typing Simulation**: The native `pynput` listener is bypassed to prevent X11 server errors. Instead, a background thread dynamically generates mock typing and accuracy logs so that charts, fatigue classification levels, and Explainable AI indicators remain fully functional and interactive for recruiters inspecting the live demo.
 
 ### Railway Deployment
-1. Create a **New Project** and deploy from GitHub repository.
+1. Create a **New Project** and deploy from the GitHub repository.
 2. Railway will automatically read `Procfile` and deploy using Gunicorn.
-3. Configure environment variables in the variables tab.
+3. Configure environment variables (including `RENDER=true`) in the Variables tab.
 
 ---
 
