@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FatigueAI — Real-Time Multimodal Mental Fatigue Detection</title>
+  <meta name="description" content="A research-grade multimodal AI telemetry pipeline for predicting mental and physical fatigue in real time.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/welcome.css') }}">
+</head>
+<body>
+
+  <!-- Page Loader -->
+  <div id="page-loader">
+    <div class="loader-content">
+      <div class="loader-spinner">🧠</div>
+      <div class="loader-text" style="font-family: 'Inter', sans-serif;">FatigueAI</div>
+    </div>
+  </div>
+
+  <!-- Background Orbs and Grid -->
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="nav-container">
+      <a href="/" class="nav-brand">
+        <div class="brand-logo">🧠</div>
+        <span class="brand-name">FatigueAI</span>
+      </a>
+      <div class="nav-links">
+        <a href="#about" class="nav-link">About</a>
+        <a href="#pipeline" class="nav-link">Architecture</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#ml" class="nav-link">AI Model</a>
+        <a href="#showcase" class="nav-link">Showcase</a>
+        <a href="#research" class="nav-link">Research</a>
+      </div>
+      <div class="nav-actions">
+        <button id="themeToggleBtn" onclick="toggleTheme()" class="btn-toggle" title="Toggle Light/Dark Theme">
+          <span id="themeToggleIcon">🌙</span>
+        </button>
+        {% if current_user.is_authenticated %}
+          <a href="/dashboard" class="btn-premium primary">Launch Dashboard</a>
+        {% else %}
+          <a href="/demo-login" class="btn-premium secondary" style="border-color: var(--green); color: var(--green); margin-right: 8px;">🎯 Recruiter Demo</a>
+          <a href="/login" class="btn-premium secondary">Sign In</a>
+          <a href="/register" class="btn-premium primary">Get Started</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-content reveal active">
+        <div class="typing-container">
+          <span id="typingText"></span><span class="typing-cursor"></span>
+        </div>
+        <h1 class="hero-title">Predict Fatigue. Optimize Focus.</h1>
+        <p class="hero-subtitle">
+          An advanced, research-grade multimodal telemetry pipeline that co-trains behavioral typing metrics with computer vision physiological tracking to detect mental fatigue in real time.
+        </p>
+        <div class="hero-actions">
+          {% if current_user.is_authenticated %}
+            <a href="/dashboard" class="btn-premium primary">Launch Dashboard</a>
+          {% else %}
+            <a href="/demo-login" class="btn-premium primary" style="background: linear-gradient(135deg, var(--green), var(--accent2)); color: #fff; box-shadow: 0 4px 20px rgba(0, 229, 160, 0.25); border: none;">🎯 Recruiter Demo Access</a>
+            <a href="/register" class="btn-premium primary">Create Free Account</a>
+            <a href="/login" class="btn-premium secondary">Sign In Portal</a>
+          {% endif %}
+          <a href="#about" class="btn-premium secondary">View Features</a>
+        </div>
+      </div>
+
+      <!-- Live Mockup Card -->
+      <div class="mockup-card glass reveal active">
+        <div class="mockup-glow"></div>
+        <div class="mockup-header">
+          <span style="font-size: 13px; font-weight: 700; color: var(--muted);">🧠 Telemetry Stream</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="mockup-dot"></div>
+            <span style="font-size: 12px; font-weight: 500; color: var(--green);">Live Heuristics</span>
+          </div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-row">
+            <div class="mockup-stat">
+              <div class="mockup-stat-label">Typing Speed</div>
+              <div class="mockup-stat-val" style="color: var(--accent2);">64 WPM</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-label">Blink Frequency</div>
+              <div class="mockup-stat-val" style="color: var(--green);">18/min</div>
+            </div>
+          </div>
+          <div class="mockup-row">
+            <div class="mockup-stat" style="background: rgba(108, 99, 255, 0.05); border-color: rgba(108, 99, 255, 0.2);">
+              <div class="mockup-stat-label">Fatigue Score</div>
+              <div class="mockup-stat-val" style="color: var(--accent);">MEDIUM</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-label">Focus Index</div>
+              <div class="mockup-stat-val" style="color: var(--yellow);">82%</div>
+            </div>
+          </div>
+          <div class="mockup-chart">
+            <div class="chart-bar-container">
+              <div class="chart-bar" style="height: 40%;"></div>
+              <div class="chart-bar" style="height: 65%;"></div>
+              <div class="chart-bar" style="height: 50%;"></div>
+              <div class="chart-bar" style="height: 85%;"></div>
+              <div class="chart-bar" style="height: 70%;"></div>
+              <div class="chart-bar" style="height: 90%;"></div>
+              <div class="chart-bar" style="height: 60%;"></div>
+              <div class="chart-bar" style="height: 45%;"></div>
+              <div class="chart-bar" style="height: 80%;"></div>
+              <div class="chart-bar" style="height: 95%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Project -->
+  <section class="reveal" id="about">
+    <div style="text-align: center;">
+      <span class="section-tag">Overview</span>
+      <h2 class="section-title">Cognitive Overload Protection</h2>
+      <p class="section-desc" style="margin: 0 auto 50px;">
+        Mental fatigue reduces productivity and leads to long-term cognitive burnout. FatigueAI logs typing speed, errors, blink intervals, and physiological changes to warn you before exhaustion sets in.
+      </p>
+    </div>
+    <div class="about-grid">
+      <div class="about-card glass">
+        <span class="about-icon">💻</span>
+        <h3>Software Engineers</h3>
+        <p>Warns developers when code quality degrades and backspace-to-keystroke error rates spike due to mental exhaustion.</p>
+      </div>
+      <div class="about-card glass">
+        <span class="about-icon">🎓</span>
+        <h3>Students & Researchers</h3>
+        <p>Maintains cognitive logging during writing sessions, indicating optimal study-break windows dynamically.</p>
+      </div>
+      <div class="about-card glass">
+        <span class="about-icon">🏥</span>
+        <h3>High-Stops Environments</h3>
+        <p>Supports alert thresholds for remote analysts and clinicians to preserve precision and patient security.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline -->
+  <section class="reveal" id="pipeline">
+    <div style="text-align: center;">
+      <span class="section-tag">Architecture</span>
+      <h2 class="section-title">Multimodal Processing Pipeline</h2>
+      <p class="section-desc" style="margin: 0 auto 50px;">
+        How your behavioral patterns and webcam tracking translate into transparent, explainable cognitive feedback.
+      </p>
+    </div>
+    <div class="pipeline-container">
+      <div class="pipeline-node">
+        <div class="node-circle">⌨️</div>
+        <h3 class="node-title">Keyboard Logs</h3>
+        <p class="node-desc">Monitors typing speed & corrections</p>
+      </div>
+      <div class="pipeline-arrow">➔</div>
+      <div class="pipeline-node">
+        <div class="node-circle">📷</div>
+        <h3 class="node-title">Webcam Stream</h3>
+        <p class="node-desc">Captures EAR & MAR coordinates</p>
+      </div>
+      <div class="pipeline-arrow">➔</div>
+      <div class="pipeline-node">
+        <div class="node-circle">📐</div>
+        <h3 class="node-title">Feature Extract</h3>
+        <p class="node-desc">Fuses behavioral & physical data</p>
+      </div>
+      <div class="pipeline-arrow">➔</div>
+      <div class="pipeline-node">
+        <div class="node-circle">🌲</div>
+        <h3 class="node-title">Random Forest</h3>
+        <p class="node-desc">Classifies fatigue level (LOW/MED/HIGH)</p>
+      </div>
+      <div class="pipeline-arrow">➔</div>
+      <div class="pipeline-node">
+        <div class="node-circle">🔍</div>
+        <h3 class="node-title">Explainable AI</h3>
+        <p class="node-desc">Breaks down fatigue reasoning</p>
+      </div>
+      <div class="pipeline-arrow">➔</div>
+      <div class="pipeline-node">
+        <div class="node-circle">📊</div>
+        <h3 class="node-title">Dashboard</h3>
+        <p class="node-desc">Visualizes real-time charts & reports</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features -->
+  <section class="reveal" id="features">
+    <div>
+      <span class="section-tag">System Capabilities</span>
+      <h2 class="section-title">Built for Real-World Integration</h2>
+      <p class="section-desc">
+        A breakdown of the underlying engines that make FatigueAI a robust, startup-grade platform.
+      </p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>⌨️ Live Typing Metrics</h3>
+        <p>Continuous collection of Words-Per-Minute and backspace frequency through a secure background hook.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>📷 Facial Landmark Mesh</h3>
+        <p>Uses MediaPipe FaceMesh to map face orientation and calculate exact spatial coordinate dimensions.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>👁️ Blink & Yawn Trackers</h3>
+        <p>Calculates dynamic Eye Aspect Ratio (EAR) and Mouth Aspect Ratio (MAR) to monitor physiological state changes.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>🌲 Random Forest Ensemble</h3>
+        <p>Features a co-trained classifier that achieves balanced predictions and resists camera dropouts.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>🔍 Explainable Diagnostics</h3>
+        <p>XAI engine translates numerical models into clear, actionable advice to help users manage burnout.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>🔬 Research Exporters</h3>
+        <p>Calculates real-time Pearson correlations ($r$) for biometric indicators and exports full session data.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>🌓 Dark & Light Modes</h3>
+        <p>Designed with glassmorphic cards and glowing visual palettes that match system theme controls.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>🛠️ Boot Diagnostics</h3>
+        <p>Checks system packages, SQLite schema, model files, and webcam ports during server startup.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>💾 Isolated SQL Storage</h3>
+        <p>Isolates user session telemetry databases, keeping profile metrics and generated CSV logs secure.</p>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-glow"></div>
+        <h3>💡 Graceful Fallback</h3>
+        <p>Bypasses ML predictors if hardware or classifiers are missing, switching to rules-based heuristics.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Machine Learning Classifiers -->
+  <section class="reveal" id="ml">
+    <div class="ml-grid">
+      <div>
+        <span class="section-tag">Machine Learning</span>
+        <h2 class="section-title">The Random Forest Ensemble</h2>
+        <p class="ml-text" style="margin-bottom: 24px;">
+          FatigueAI is driven by a trained Random Forest model. Rather than relying on simple thresholds, the model co-trains behavioral markers with coordinate values, handling gaps in camera tracking smoothly.
+        </p>
+        <div class="ml-stats">
+          <div class="ml-stat-card glass">
+            <div class="ml-stat-num"><span class="counter" data-target="97.37" data-float="true">0</span>%</div>
+            <div class="ml-stat-label">Model Accuracy</div>
+          </div>
+          <div class="ml-stat-card glass">
+            <div class="ml-stat-num"><span class="counter" data-target="8184" data-float="false">0</span></div>
+            <div class="ml-stat-label">Training Size</div>
+          </div>
+        </div>
+        <p class="ml-text">
+          By injecting Gaussian noise ($N(0, \sigma^2)$) during the training phase, we introduce natural human variance into the dataset, which helps the classifier perform accurately in real-world scenarios.
+        </p>
+      </div>
+
+      <!-- Feature Importance Chart Mockup -->
+      <div class="glass ml-diagram">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; margin-bottom: 20px;">🌲 Gini Feature Importance</h3>
+        <div class="diagram-bar">
+          <div class="diagram-fill" style="width: 51%;"></div>
+          <div class="diagram-label"><span>Typing Speed (WPM)</span> <span>51.28%</span></div>
+        </div>
+        <div class="diagram-bar">
+          <div class="diagram-fill" style="width: 27%;"></div>
+          <div class="diagram-label"><span>Backspace Errors</span> <span>27.00%</span></div>
+        </div>
+        <div class="diagram-bar">
+          <div class="diagram-fill" style="width: 20%;"></div>
+          <div class="diagram-label"><span>Session Duration</span> <span>19.81%</span></div>
+        </div>
+        <div class="diagram-bar">
+          <div class="diagram-fill" style="width: 1.5%;"></div>
+          <div class="diagram-label"><span>Mouth Stretch (MAR)</span> <span>1.38%</span></div>
+        </div>
+        <div class="diagram-bar">
+          <div class="diagram-fill" style="width: 0.7%;"></div>
+          <div class="diagram-label"><span>Eye Openness (EAR)</span> <span>0.53%</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Webcam & MediaPipe -->
+  <section class="reveal" id="webcam">
+    <div class="webcam-grid">
+      <div class="webcam-preview">
+        <div class="face-mesh-overlay"></div>
+        <!-- Simulated landmarks -->
+        <div class="mesh-point" style="top: 40%; left: 35%;"></div>
+        <div class="mesh-point" style="top: 40%; left: 45%;"></div>
+        <div class="mesh-point" style="top: 38%; left: 40%;"></div>
+        <div class="mesh-point" style="top: 55%; left: 40%;"></div>
+        <div class="mesh-point" style="top: 48%; left: 33%;"></div>
+        <div class="mesh-point" style="top: 48%; left: 47%;"></div>
+        <div class="mesh-point" style="top: 52%; left: 36%;"></div>
+        <div class="mesh-point" style="top: 52%; left: 44%;"></div>
+        <div style="position: absolute; color: var(--accent2); font-size: 12px; font-weight: 700; top: 12px; left: 16px;">
+          🎥 MediaPipe FaceMesh Active
+        </div>
+        <div style="position: absolute; border: 1px solid var(--accent2-glow); padding: 8px 12px; background: rgba(0, 0, 0, 0.6); border-radius: 8px; font-family: monospace; font-size: 11px; bottom: 12px; right: 16px;">
+          EAR: 0.32 (Nominal)<br>
+          MAR: 0.14 (Neutral)
+        </div>
+      </div>
+      <div>
+        <span class="section-tag">Computer Vision</span>
+        <h2 class="section-title">Physiological Video Telemetry</h2>
+        <p class="ml-text" style="margin-bottom: 20px;">
+          Using 468 3D landmarks from MediaPipe FaceMesh, the webcam processor calculates EAR and MAR ratios dynamically.
+        </p>
+        <div class="about-card glass" style="padding: 20px; margin-bottom: 16px;">
+          <h4 style="font-family: 'Outfit', sans-serif; font-size: 15px; margin-bottom: 6px; color: var(--accent2);">👁️ Eye Aspect Ratio (EAR)</h4>
+          <p style="font-size: 13px;">Tracks blink frequency and duration. Significant drops indicate micro-sleep warnings.</p>
+        </div>
+        <div class="about-card glass" style="padding: 20px;">
+          <h4 style="font-family: 'Outfit', sans-serif; font-size: 15px; margin-bottom: 6px; color: var(--green);">👄 Mouth Aspect Ratio (MAR)</h4>
+          <p style="font-size: 13px;">Measures vertical mouth stretch. Detects yawns to track early physical fatigue.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Showcase Carousel -->
+  <section class="reveal" id="showcase">
+    <div style="text-align: center;">
+      <span class="section-tag">Showcase</span>
+      <h2 class="section-title">UI & Feature Walkthrough</h2>
+      <p class="section-desc" style="margin: 0 auto 50px;">
+        A visual tour of the FatigueAI interface, highlighting active widgets, research reports, and custom themes.
+      </p>
+    </div>
+
+    <!-- Carousel -->
+    <div class="carousel-container">
+      <button class="carousel-btn prev" id="carouselPrev">❮</button>
+      <button class="carousel-btn next" id="carouselNext">❯</button>
+
+      <div class="carousel-slide active">
+        <img src="{{ url_for('static', filename='images/dashboard_dark.png') }}" class="carousel-img" alt="FatigueAI Dark Mode Dashboard">
+        <div class="carousel-caption">
+          <h3>Sleek Glassmorphic Dashboard</h3>
+          <p>The dark midnight default interface displays live stats, charts, and webcam feed status widgets clearly.</p>
+        </div>
+      </div>
+
+      <div class="carousel-slide">
+        <img src="{{ url_for('static', filename='images/dashboard_light.png') }}" class="carousel-img" alt="FatigueAI Light Mode Dashboard">
+        <div class="carousel-caption">
+          <h3>Cohesive Light Theme</h3>
+          <p>Toggles to a light mode configuration, adjusting font weight and chart colors instantly.</p>
+        </div>
+      </div>
+
+      <div class="carousel-slide">
+        <img src="{{ url_for('static', filename='images/report_modal_dark.png') }}" class="carousel-img" alt="FatigueAI Research Exporter Modal">
+        <div class="carousel-caption">
+          <h3>Statistical Research Report</h3>
+          <p>A modal overlay calculates metrics, Pearson correlations, and multi-class distribution profiles.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research & Engineering Section -->
+  <section class="reveal" id="research">
+    <div class="research-grid">
+      <div class="research-card glass">
+        <span class="section-tag" style="margin-bottom: 12px;">Data Science</span>
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 24px; margin-bottom: 16px;">Pearson Correlation Analysis</h3>
+        <p class="ml-text" style="margin-bottom: 16px;">
+          The system evaluates linear correlations between keyboard speed, error rates, eye aperture, and fatigue levels:
+        </p>
+        <div class="formula-box">
+          r = Σ((x - x̄)(y - ȳ)) / √(Σ(x - x̄)² Σ(y - ȳ)²)
+        </div>
+        <p class="ml-text" style="margin-top: 16px;">
+          These metrics show how closely a user's typing metrics align with physiological fatigue markers.
+        </p>
+      </div>
+
+      <!-- Startup Diagnostics ASCII Card -->
+      <div class="research-card glass" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <span class="section-tag" style="margin-bottom: 12px;">Engineering</span>
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 20px; margin-bottom: 16px;">Boot Validation Logs</h3>
+        <div class="console-card">
+          <div class="console-header">=== FATIGUEAI STARTUP SYSTEM DIAGNOSTICS ===</div>
+          [OK] ML Classifier Model Binary Verification<br>
+          [OK] Webcam Hardware Capture Verification<br>
+          [OK] SQLite Database Analytics Schema Verification<br>
+          [OK] Active Virtual Environment Packages<br>
+          ------------------------------------------<br>
+          SUCCESS: All core services loaded successfully.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack badges -->
+  <section class="reveal" id="tech">
+    <div style="text-align: center;">
+      <span class="section-tag">Technology</span>
+      <h2 class="section-title">The Technology Stack</h2>
+      <p class="section-desc" style="margin: 0 auto 50px;">
+        FatigueAI is built on reliable, research-focused open source libraries.
+      </p>
+    </div>
+    <div class="tech-container">
+      <div class="tech-badge">
+        <span class="tech-icon">🐍</span> <span>Python</span>
+      </div>
+      <div class="tech-badge">
+        <span class="tech-icon">🔥</span> <span>Flask Backend</span>
+      </div>
+      <div class="tech-badge">
+        <span class="tech-icon">🌲</span> <span>Scikit-Learn</span>
+      </div>
+      <div class="tech-badge">
+        <span class="tech-icon">🐼</span> <span>Pandas & NumPy</span>
+      </div>
+      <div class="tech-badge">
+        <span class="tech-icon">🎥</span> <span>OpenCV Tracker</span>
+      </div>
+      <div class="tech-badge">
+        <span class="tech-icon">⚡</span> <span>MediaPipe FaceMesh</span>
+      </div>
+      <div class="tech-badge">
+        <span class="tech-icon">📈</span> <span>Chart.js Frontend</span>
+      </div>
+      <div class="tech-badge">
+        <span class="tech-icon">💾</span> <span>SQLite Database</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA Banner -->
+  <section class="reveal" id="cta">
+    <div class="cta-banner glass">
+      <h2>Experience Real-Time AI Fatigue Analytics</h2>
+      <p>
+        Deploy the diagnostic pipeline locally, review behavioral patterns, and prevent cognitive burnout today.
+      </p>
+      <div class="hero-actions" style="justify-content: center;">
+        {% if current_user.is_authenticated %}
+          <a href="/dashboard" class="btn-premium primary">Launch Dashboard</a>
+        {% else %}
+          <a href="/demo-login" class="btn-premium primary" style="background: linear-gradient(135deg, var(--green), var(--accent2)); color: #fff; box-shadow: 0 4px 20px rgba(0, 229, 160, 0.25); border: none;">🎯 Recruiter Demo Access</a>
+          <a href="/register" class="btn-premium primary">Create Free Account</a>
+          <a href="/login" class="btn-premium secondary">Sign In Portal</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h3>🧠 FatigueAI</h3>
+        <p>
+          Real-Time Multimodal Mental Fatigue Detection & Explainable AI Analytics Platform.
+        </p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="#hero">Hero Section</a></li>
+          <li><a href="#about">About Project</a></li>
+          <li><a href="#pipeline">System Pipeline</a></li>
+          <li><a href="#features">Platform Features</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Reference</h4>
+        <ul>
+          <li><a href="#ml">ML Classifier</a></li>
+          <li><a href="#showcase">Dashboard Showcase</a></li>
+          <li><a href="#research">Research Formula</a></li>
+          <li><a href="https://github.com" target="_blank">View on GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 FatigueAI. Developed as a startup portfolio product. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="https://github.com" target="_blank" title="GitHub">🐙</a>
+        <a href="https://linkedin.com" target="_blank" title="LinkedIn">💼</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/welcome.js') }}"></script>
+</body>
+</html>

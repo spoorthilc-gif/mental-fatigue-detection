@@ -1,0 +1,29 @@
+{
+  "experiment_a_dt_with_prod": {
+    "train_accuracy": 0.9747976172292653,
+    "test_accuracy": 0.9670128283445327,
+    "precision": 0.9673099784978886,
+    "recall": 0.9670128283445327,
+    "f1_score": 0.9670596780561547,
+    "optimal_depth": 7,
+    "prediction_confidence": 0.9751454366265336
+  },
+  "experiment_b_dt_without_prod": {
+    "train_accuracy": 0.9685352069650222,
+    "test_accuracy": 0.9633475870494808,
+    "precision": 0.9635420682723809,
+    "recall": 0.9633475870494808,
+    "f1_score": 0.9633991518210389,
+    "optimal_depth": 6,
+    "prediction_confidence": 0.9707533383115118
+  },
+  "random_forest_validated": {
+    "train_accuracy": 0.9793798686421261,
+    "test_accuracy": 0.9737324373854612,
+    "precision": 0.9738537670433949,
+    "recall": 0.9737324373854612,
+    "f1_score": 0.973745478589126,
+    "optimal_depth": 8,
+    "prediction_confidence": 0.9476330620394418
+  }
+}

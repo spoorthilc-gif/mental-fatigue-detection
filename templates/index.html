@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Mental Fatigue Dashboard</title>
+  <meta name="description" content="Real-time mental fatigue detection using typing behaviour analysis." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Default theme: Dark */
+    :root, [data-theme="dark"] {
+      --bg: #0a0d14;
+      --surface: #111624;
+      --surface2: #1a2035;
+      --border: rgba(255,255,255,0.07);
+      --accent: #6c63ff;
+      --accent2: #00d4ff;
+      --accent3: #ff6b9d;
+      --green: #00e5a0;
+      --yellow: #ffd166;
+      --red: #ff4757;
+      --text: #e8ecf4;
+      --muted: #7a8399;
+      --radius: 16px;
+
+      /* Break Alert colours */
+      --alert-bg: #1a1025;
+      --alert-border: rgba(255,71,87,0.35);
+      --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --card-hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+      --hover-row-bg: rgba(255, 255, 255, 0.02);
+      --btn-bg: rgba(255, 255, 255, 0.03);
+      --btn-hover-bg: rgba(255, 255, 255, 0.08);
+      --navbar-bg: rgba(10, 13, 20, 0.85);
+      --grid-color: rgba(108, 99, 255, 0.03);
+      --orb-color: rgba(108, 99, 255, 0.12);
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface2: #e2e8f0;
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #6c63ff;
+      --accent2: #00b4d8;
+      --accent3: #ff4b91;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --text: #1e293b;
+      --muted: #64748b;
+      --radius: 16px;
+
+      /* Break Alert colours */
+      --alert-bg: #fef2f2;
+      --alert-border: rgba(239, 68, 68, 0.25);
+      --card-shadow: 0 8px 24px rgba(108, 99, 255, 0.05);
+      --card-hover-shadow: 0 12px 32px rgba(108, 99, 255, 0.12);
+      --hover-row-bg: rgba(0, 0, 0, 0.03);
+      --btn-bg: rgba(0, 0, 0, 0.03);
+      --btn-hover-bg: rgba(0, 0, 0, 0.06);
+      --navbar-bg: rgba(245, 247, 250, 0.85);
+      --grid-color: rgba(108, 99, 255, 0.05);
+      --orb-color: rgba(108, 99, 255, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+      transition: background-image 0.3s ease;
+    }
+
+    /* Glow orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--orb-color) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatOrb 8s ease-in-out infinite;
+      transition: background 0.3s ease;
+    }
+
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(60px, 40px); }
+    }
+
+    /* ─── Theme Toggle Button ─── */
+    .theme-toggle-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.3s, border-color 0.3s, transform 0.2s, color 0.3s;
+    }
+
+    .theme-toggle-btn:hover {
+      transform: scale(1.05);
+      background: var(--btn-hover-bg);
+      border-color: var(--accent);
+    }
+
+    /* ─── Navbar ─── */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      background: var(--navbar-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .brand-text {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(0,229,160,0.1);
+      border: 1px solid rgba(0,229,160,0.25);
+      border-radius: 50px;
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .user-profile-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    
+    .user-profile-icon {
+      font-size: 14px;
+    }
+
+    .user-profile-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ─── Main layout ─── */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
+    }
+
+    .page-header {
+      margin-bottom: 36px;
+    }
+
+    .page-header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .page-header p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ─── Stat cards row ─── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .stats-row { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s, box-shadow 0.2s, background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--card-hover-shadow);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .stat-card.wpm::before    { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .stat-card.errors::before { background: linear-gradient(90deg, var(--accent3), var(--red)); }
+    .stat-card.elapsed::before{ background: linear-gradient(90deg, var(--yellow), #ff9f43); }
+    .stat-card.chars::before  { background: linear-gradient(90deg, var(--green), var(--accent2)); }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .stat-card.wpm    .stat-value { color: var(--accent2); }
+    .stat-card.errors .stat-value { color: var(--accent3); }
+    .stat-card.elapsed .stat-value { color: var(--yellow); }
+    .stat-card.chars  .stat-value { color: var(--green); }
+
+    .stat-unit {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ─── Chart + fatigue row ─── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* ─── Prediction cards row ─── */
+    .prediction-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.2fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* ─── Feature 2: Fatigue History full-width row ─── */
+    .history-row {
+      margin-bottom: 16px;
+    }
+
+    /* ─── Feature 1 & 2: Analytics Row (XAI + Table) ─── */
+    .analytics-row {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 1100px) {
+      .analytics-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* XAI diagnostics metrics styles */
+    .xai-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 18px 0;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .xai-metric-item {
+      background: var(--surface2);
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .xai-metric-item .metric-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .xai-metric-item .metric-value {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .xai-metric-item .metric-desc {
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .text-green { color: var(--green); }
+    .text-blue { color: var(--accent2); }
+    .text-yellow { color: var(--yellow); }
+    .text-red { color: var(--red); }
+
+    .xai-reasons-container {
+      margin-top: 14px;
+    }
+
+    .xai-reasons-container .reasons-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .reasons-list {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    .reasons-list li {
+      position: relative;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 8px;
+      padding-left: 20px;
+    }
+
+    .reasons-list li::before {
+      content: '⚡';
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    /* Logs Table style */
+    .table-container {
+      margin-top: 16px;
+      overflow-x: auto;
+      max-height: 280px;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .logs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .logs-table th {
+      position: sticky;
+      top: 0;
+      background: var(--surface2);
+      color: var(--text);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      z-index: 2;
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .logs-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .logs-table tr:hover td {
+      background: var(--hover-row-bg);
+      color: var(--text);
+    }
+
+    .table-empty {
+      text-align: center;
+      padding: 40px !important;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-pill.level-low { background: rgba(0, 229, 160, 0.1); color: var(--green); border: 1px solid rgba(0, 229, 160, 0.25); }
+    .badge-pill.level-medium { background: rgba(255, 209, 102, 0.1); color: var(--yellow); border: 1px solid rgba(255, 209, 102, 0.25); }
+    .badge-pill.level-high { background: rgba(255, 71, 87, 0.1); color: var(--red); border: 1px solid rgba(255, 71, 87, 0.25); }
+
+    .badge-pill.prod-excellent { background: rgba(0, 229, 160, 0.1); color: var(--green); border: 1px solid rgba(0, 229, 160, 0.25); }
+    .badge-pill.prod-good { background: rgba(108, 99, 255, 0.1); color: var(--accent); border: 1px solid rgba(108, 99, 255, 0.25); }
+    .badge-pill.prod-break { background: rgba(255, 71, 87, 0.1); color: var(--red); border: 1px solid rgba(255, 71, 87, 0.25); }
+
+    .legend-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .legend-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+
+    @media (max-width: 1100px) {
+      .charts-row { grid-template-columns: 1fr 1fr; }
+      .prediction-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .charts-row { grid-template-columns: 1fr; }
+      .prediction-row { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s, box-shadow 0.2s, background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-hover-shadow);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .badge-blue { background: rgba(108,99,255,0.15); color: var(--accent); }
+    .badge-red  { background: rgba(255,71,87,0.15); color: var(--red); }
+    .badge-green { background: rgba(0, 229, 160, 0.15); color: var(--green); }
+    .badge-yellow { background: rgba(255, 209, 102, 0.15); color: var(--yellow); }
+    .badge-gray { background: rgba(122, 131, 153, 0.15); color: var(--muted); }
+
+    /* Webcam metrics styles */
+    .webcam-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .webcam-metric-item {
+      background: var(--surface2);
+      padding: 8px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .webcam-metric-item .metric-label {
+      font-size: 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .webcam-metric-item .metric-value {
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    /* Tab switcher style */
+    .tab-btn.active {
+      background: var(--accent) !important;
+      color: #fff !important;
+      box-shadow: 0 4px 12px rgba(108,99,255,0.25);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 180px;
+    }
+
+    /* ─── Fatigue panel ─── */
+    .fatigue-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .fatigue-level-ring {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 10px 0;
+    }
+
+    .ring-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin-bottom: 16px;
+    }
+
+    .ring-svg {
+      width: 140px;
+      height: 140px;
+      transform: rotate(-90deg);
+    }
+
+    .ring-track {
+      fill: none;
+      stroke: rgba(255,255,255,0.06);
+      stroke-width: 10;
+    }
+
+    .ring-fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 345;
+      stroke-dashoffset: 345;
+      transition: stroke-dashoffset 1s ease, stroke 0.6s ease;
+    }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-score {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .ring-label {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .fatigue-text {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .fatigue-sub {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* Fatigue colour states */
+    .level-low    { color: var(--green); }
+    .level-medium { color: var(--yellow); }
+    .level-high   { color: var(--red); }
+
+    .ring-fill.level-low    { stroke: var(--green); }
+    .ring-fill.level-medium { stroke: var(--yellow); }
+    .ring-fill.level-high   { stroke: var(--red); }
+
+    /* ─── Tips section ─── */
+    .tip-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .tip-box strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ─── Footer ─── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    footer span {
+      color: var(--accent);
+    }
+
+    /* ─── Number animation ─── */
+    .stat-value {
+      transition: color 0.4s;
+    }
+
+    /* Page Loader Overlay */
+    #page-loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    .loader-content { text-align: center; }
+    .loader-spinner {
+      font-size: 64px;
+      animation: pulse-loader 1.5s infinite ease-in-out;
+      margin-bottom: 16px;
+    }
+    .loader-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--text) 30%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 1.5px;
+    }
+    @keyframes pulse-loader {
+      0%, 100% { transform: scale(1); opacity: 0.8; filter: drop-shadow(0 0 10px rgba(108, 99, 255, 0.2)); }
+      50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 25px rgba(0, 212, 255, 0.5)); }
+    }
+
+    /* Skeleton Loading Cards */
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background: var(--surface2) !important;
+      border-color: var(--border) !important;
+    }
+    .skeleton::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+      animation: skeleton-glow 1.5s infinite;
+    }
+    [data-theme="light"] .skeleton::after {
+      background: linear-gradient(90deg, transparent, rgba(0,0,0,0.03), transparent);
+    }
+    @keyframes skeleton-glow {
+      100% { transform: translateX(100%); }
+    }
+    .skeleton-text {
+      height: 14px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    [data-theme="light"] .skeleton-text {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Toast Notification System */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 380px;
+      width: calc(100% - 48px);
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      border-radius: 12px;
+      color: var(--text);
+      box-shadow: var(--card-shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error { border-left: 4px solid var(--red); }
+    .toast.warning { border-left: 4px solid var(--yellow); }
+    .toast.info { border-left: 4px solid var(--accent2); }
+
+    .toast-icon { font-size: 18px; flex-shrink: 0; }
+    .toast-content { flex-grow: 1; font-size: 13px; font-weight: 500; line-height: 1.4; }
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      line-height: 1;
+    }
+
+    /* Custom Empty States */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 24px;
+      height: 100%;
+      min-height: 200px;
+    }
+    .empty-icon {
+      font-size: 44px;
+      margin-bottom: 16px;
+      animation: float-empty 3s ease-in-out infinite alternate;
+    }
+    @keyframes float-empty {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-6px); }
+    }
+    .empty-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .empty-desc {
+      font-size: 12px;
+      color: var(--muted);
+      max-width: 280px;
+      line-height: 1.5;
+    }
+
+    /* Recruiter Presentation Mode */
+    body.presentation-mode {
+      padding-bottom: 60px;
+    }
+    body.presentation-mode .navbar-brand {
+      pointer-events: none;
+    }
+    body.presentation-mode .logs-panel,
+    body.presentation-mode .xai-panel,
+    body.presentation-mode .page-header,
+    body.presentation-mode #fatigueCard {
+      display: none !important;
+    }
+    body.presentation-mode .stats-row {
+      grid-template-columns: repeat(4, 1fr) !important;
+    }
+    body.presentation-mode .prediction-row {
+      grid-template-columns: 1.2fr 1.8fr !important;
+    }
+    body.presentation-mode #webcamCard {
+      grid-column: span 1 !important;
+    }
+    body.presentation-mode #mlPredictCard {
+      grid-column: span 1 !important;
+    }
+    /* Glow borders and subtle card enhancements */
+    .card {
+      position: relative;
+      transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      border-color: var(--border-glow);
+      box-shadow: var(--card-hover-shadow);
+      transform: translateY(-2px);
+    }
+    .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page Loader -->
+  <div id="page-loader">
+    <div class="loader-content">
+      <div class="loader-spinner">🧠</div>
+      <div class="loader-text">FatigueAI</div>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/" class="navbar-brand" style="text-decoration: none;">
+      <div class="brand-icon">🧠</div>
+      <span class="brand-text">FatigueAI</span>
+    </a>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button id="themeToggleBtn" onclick="toggleTheme()" class="theme-toggle-btn" title="Toggle Light/Dark Mode">
+        <span id="themeToggleIcon" style="font-size: 16px;">🌙</span>
+      </button>
+      <div class="user-profile-pill">
+        <span class="user-profile-icon">👤</span>
+        <span class="user-profile-name">{{ current_user.username }}</span>
+      </div>
+      <button class="btn-reset" onclick="showReportModal()" id="btnResearchReportNavbar">
+        <span class="btn-reset-icon">🔬</span> Research Report
+      </button>
+      <a href="/api/export-csv" class="btn-reset" style="text-decoration: none;" id="btnExportNavbar">
+        <span class="btn-reset-icon">📥</span> Export Dataset
+      </a>
+      <button class="btn-reset" onclick="togglePresentationMode()" id="btnPresentationNavbar" title="Toggle Presentation Mode" style="border-color: var(--accent2); color: var(--accent2);">
+        <span class="btn-reset-icon">📺</span> Presentation Mode
+      </button>
+      <button class="btn-reset" onclick="showResetModal()">
+        <span class="btn-reset-icon">🔄</span> Reset Session
+      </button>
+      <a href="/logout" class="btn-reset" style="text-decoration: none;" title="Log Out">
+        <span class="btn-reset-icon">🚪</span> Logout
+      </a>
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        Live Monitoring
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container">
+
+    <div class="page-header">
+      <h1>Mental Fatigue Dashboard</h1>
+      <p>Real-time analysis of your typing behaviour to detect cognitive fatigue.</p>
+    </div>
+
+    <!-- Stat Summary Row -->
+    <div class="stats-row">
+      <div class="stat-card wpm">
+        <div class="stat-label">Typing Speed</div>
+        <div class="stat-value" id="statWpm">0</div>
+        <div class="stat-unit">words per minute</div>
+      </div>
+      <div class="stat-card errors">
+        <div class="stat-label">Backspace Errors</div>
+        <div class="stat-value" id="statErrors">0</div>
+        <div class="stat-unit">total corrections</div>
+      </div>
+      <div class="stat-card elapsed">
+        <div class="stat-label">Session Time</div>
+        <div class="stat-value" id="statElapsed">0</div>
+        <div class="stat-unit">seconds active</div>
+      </div>
+      <div class="stat-card chars">
+        <div class="stat-label">Characters Typed</div>
+        <div class="stat-value" id="statChars">0</div>
+        <div class="stat-unit">total keystrokes</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+
+      <!-- WPM Chart -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Typing Speed (WPM)</span>
+          <span class="card-badge badge-blue">Live</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="wpmChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Errors Chart -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Backspace Errors</span>
+          <span class="card-badge badge-red">Live</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="errorChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Prediction Row (Rule-Based + ML-Based) -->
+    <div class="prediction-row">
+
+      <!-- Fatigue Panel (Rule-Based) -->
+      <div class="card fatigue-panel" id="fatigueCard">
+        <div class="card-header">
+          <span class="card-title">Fatigue Level (Rule-Based)</span>
+          <span class="card-badge badge-blue" id="fatigueBadge">Calculating…</span>
+        </div>
+
+        <div class="fatigue-level-ring">
+          <div class="ring-container">
+            <svg class="ring-svg" viewBox="0 0 120 120">
+              <circle class="ring-track" cx="60" cy="60" r="55"/>
+              <circle class="ring-fill level-low" id="ringFill" cx="60" cy="60" r="55"/>
+            </svg>
+            <div class="ring-center">
+              <span class="ring-score level-low" id="ringScore">0</span>
+              <span class="ring-label">score</span>
+            </div>
+          </div>
+
+          <div class="fatigue-text level-low" id="fatigueLabel">Low</div>
+          <div class="fatigue-sub" id="fatigueSub">Start typing to begin analysis</div>
+        </div>
+
+        <div class="tip-box" id="fatigueTip">
+          <strong>💡 Tip:</strong> Begin typing in any application. The dashboard tracks your speed and errors in real time.
+        </div>
+      </div>
+
+      <!-- ML Fatigue Prediction Card -->
+      <div class="card ml-predict-card" id="mlPredictCard">
+        <div class="card-header">
+          <span class="card-title">Fatigue Prediction (Machine Learning)</span>
+          <span class="card-badge badge-blue" id="mlStatusBadge">Idle</span>
+        </div>
+
+        <div class="fatigue-level-ring">
+          <div class="ring-container">
+            <svg class="ring-svg" viewBox="0 0 120 120">
+              <circle class="ring-track" cx="60" cy="60" r="55"/>
+              <circle class="ring-fill level-low" id="mlRingFill" cx="60" cy="60" r="55"/>
+            </svg>
+            <div class="ring-center">
+              <span class="ring-score level-low" id="mlConfidenceVal">0%</span>
+              <span class="ring-label">confidence</span>
+            </div>
+          </div>
+
+          <div class="fatigue-text level-low" id="mlPredictLabel">LOW</div>
+          <div class="fatigue-sub" id="mlModelVal">Model: Random Forest (Multimodal)</div>
+        </div>
+
+        <div class="tip-box" id="mlReasonsBox">
+          <strong>🔍 ML Reasoning:</strong> Waiting for typing telemetry...
+        </div>
+      </div>
+
+      <!-- Live Webcam Feed Card -->
+      <div class="card webcam-card" id="webcamCard">
+        <div class="card-header">
+          <span class="card-title">Live Webcam Feed</span>
+          <span class="card-badge badge-gray" id="webcamStatusBadge">Initializing…</span>
+        </div>
+        
+        <div style="position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;">
+          <img src="/video_feed" id="webcamStream" style="width: 100%; height: 100%; object-fit: cover;" alt="Live Webcam Feed">
+          <div id="webcamEmptyState" class="empty-state" style="position: absolute; inset: 0; background: #0c0f17; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5;">
+            <div class="empty-icon">📷</div>
+            <div class="empty-title">Webcam Offline / Locked</div>
+            <div class="empty-desc" style="max-width: 250px; font-size: 11px;">Connect a USB camera or allow browser permissions to track physical landmark telemetry.</div>
+          </div>
+        </div>
+
+        <div class="webcam-metrics">
+          <div class="webcam-metric-item">
+            <div class="metric-label">Blinks</div>
+            <div class="metric-value text-green" id="webcamBlinks">0</div>
+          </div>
+          <div class="webcam-metric-item">
+            <div class="metric-label">Yawns</div>
+            <div class="metric-value text-yellow" id="webcamYawns">0</div>
+          </div>
+          <div class="webcam-metric-item">
+            <div class="metric-label">Eye Aperture</div>
+            <div class="metric-value text-blue" id="webcamAperture">0.0</div>
+          </div>
+          <div class="webcam-metric-item">
+            <div class="metric-label">Mouth Stretch</div>
+            <div class="metric-value text-red" id="webcamMouth">0.0</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         FEATURE 2 — FATIGUE HISTORY CHART
+         A full-width chart tracking fatigue score over time.
+         Updated every 2 seconds alongside the ring gauge.
+    ════════════════════════════════════════════════ -->
+    <div class="history-row">
+      <div class="card">
+        <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+          <div>
+            <span class="card-title" id="historyChartTitle">Fatigue Score History</span>
+            <span style="font-size:12px;color:var(--muted);margin-left:10px;">Last 30 readings</span>
+          </div>
+          
+          <!-- Glassmorphic Tab Selector -->
+          <div class="analytics-tabs" style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:30px; padding:3px;">
+            <button class="tab-btn active" onclick="switchHistoryTab('fatigue')" style="background:none; border:none; color:var(--text); padding:6px 16px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; transition:background 0.2s, color 0.2s;">Fatigue Score</button>
+            <button class="tab-btn" onclick="switchHistoryTab('webcam')" style="background:none; border:none; color:var(--muted); padding:6px 16px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; transition:background 0.2s, color 0.2s;">Blinks & Yawns</button>
+            <button class="tab-btn" onclick="switchHistoryTab('confidence')" style="background:none; border:none; color:var(--muted); padding:6px 16px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; transition:background 0.2s, color 0.2s;">ML Confidence</button>
+            <button class="tab-btn" onclick="switchHistoryTab('productivity')" style="background:none; border:none; color:var(--muted); padding:6px 16px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; transition:background 0.2s, color 0.2s;">Productivity & Concentration</button>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;" id="historyLegend">
+            <!-- Live legend dots -->
+            <span class="legend-dot" style="background:var(--green)"></span><span class="legend-label">Low</span>
+            <span class="legend-dot" style="background:var(--yellow)"></span><span class="legend-label">Medium</span>
+            <span class="legend-dot" style="background:var(--red)"></span><span class="legend-label">High</span>
+            <span class="card-badge badge-blue">Live</span>
+          </div>
+        </div>
+        <div class="chart-container" style="height:200px;">
+          <canvas id="fatigueHistoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         FEATURE 1 & 2 — BEHAVIORAL ANALYTICS & XAI
+         A split-layout row containing Fatigue Reasoning on the left
+         and the Live Session Logs Table on the right.
+    ════════════════════════════════════════════════ -->
+    <div class="analytics-row">
+      <!-- Explainable AI (XAI) Fatigue Reasoning -->
+      <div class="card xai-panel">
+        <div class="card-header">
+          <span class="card-title">Fatigue Reasoning & Diagnostics</span>
+          <span class="card-badge badge-blue">Explainable AI</span>
+        </div>
+        
+        <div class="xai-metrics">
+          <div class="xai-metric-item">
+            <div class="metric-label">Productivity</div>
+            <div class="metric-value text-green" id="xaiProductivityVal">GOOD</div>
+            <div class="metric-desc" id="xaiProductivityScore">Score: 0.0</div>
+          </div>
+          <div class="xai-metric-item">
+            <div class="metric-label">Concentration</div>
+            <div class="metric-value text-blue" id="xaiConcentrationScore">100.0</div>
+            <div class="metric-desc">Error ratio calc</div>
+          </div>
+          <div class="xai-metric-item">
+            <div class="metric-label">Trend</div>
+            <div class="metric-value text-yellow" id="xaiTrend">STABLE</div>
+            <div class="metric-desc">Direction</div>
+          </div>
+        </div>
+
+        <div class="xai-reasons-container">
+          <div class="reasons-title">AI Diagnostics & Explanations:</div>
+          <ul class="reasons-list" id="xaiReasonsList">
+            <li>Start typing to initiate diagnostics...</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Live Session Logs Table -->
+      <div class="card logs-panel">
+        <div class="card-header">
+          <span class="card-title">Live Behavioral Session Logs</span>
+          <span class="card-badge badge-red">Real-time DB</span>
+        </div>
+        <div class="table-container" id="logsTableContainer">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>WPM</th>
+                <th>Errors</th>
+                <th>Duration</th>
+                <th>Fatigue Score</th>
+                <th>Fatigue Level</th>
+                <th>Productivity</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <!-- Logs populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+        <div id="logsEmptyState" class="empty-state">
+          <div class="empty-icon">⌨️</div>
+          <div class="empty-title">Waiting for Typing Telemetry...</div>
+          <div class="empty-desc">Begin typing in any application. Your typing speed and backspace error rate will log here in real time.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    © 2026 <span>FatigueAI</span> · Real-time mental fatigue detection
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════
+       FEATURE 1 — BREAK ALERT MODAL
+       Shown once whenever fatigue transitions to HIGH.
+       Hidden by default (display:none). JS toggles it.
+  ════════════════════════════════════════════════ -->
+  <div id="breakAlertOverlay" style="display:none" onclick="dismissAlert()">
+    <div id="breakAlertBox" onclick="event.stopPropagation()">
+      <div class="alert-icon">⚠️</div>
+      <h2 class="alert-title">High Fatigue Detected</h2>
+      <p class="alert-body">
+        Your typing speed has dropped and error rate is rising —
+        signs of mental fatigue. A short break will help you recover.
+      </p>
+      <div class="alert-suggestion">
+        🕐 &nbsp;Recommended break: <strong>10 minutes</strong>
+      </div>
+      <!-- Dismiss hides the alert; "Snooze" re-arms it after 5 min -->
+      <div class="alert-actions">
+        <button id="btnSnooze"  onclick="snoozeAlert()">Snooze 5 min</button>
+        <button id="btnDismiss" onclick="dismissAlert()">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FEATURE 3 — RESET CONFIRMATION MODAL
+       Shown when user clicks the Reset Session button.
+       Hidden by default (display:none). JS toggles it.
+  ════════════════════════════════════════════════ -->
+  <div id="resetModalOverlay" style="display:none" onclick="dismissResetModal()">
+    <div id="resetModalBox" onclick="event.stopPropagation()">
+      <div class="reset-modal-icon">🔄</div>
+      <h2 class="reset-modal-title">Reset Session Stats?</h2>
+      <p class="reset-modal-body">
+        This will clear all your typing speed, backspace error count, and fatigue score history. You will start a fresh session.
+      </p>
+      <div class="reset-modal-actions">
+        <button id="btnCancelReset" onclick="dismissResetModal()">Cancel</button>
+        <button id="btnConfirmReset" onclick="executeReset()">Yes, Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       FEATURE 4 — RESEARCH GRADE ANALYTICS SUMMARY
+       Shown when user clicks the Research Analytics button.
+       Hidden by default (display:none). JS toggles it.
+  ════════════════════════════════════════════════ -->
+  <div id="reportModalOverlay" style="display:none" onclick="dismissReportModal()">
+    <div id="reportModalBox" onclick="event.stopPropagation()">
+      <div class="report-modal-header">
+        <h2 class="report-modal-title">🔬 Research Analytics & Dataset Profile</h2>
+        <button class="btn-close-modal" onclick="dismissReportModal()">&times;</button>
+      </div>
+      
+      <p class="report-modal-body">
+        Calculated correlation coefficients and model output profiles derived from live typing telemetry.
+      </p>
+
+      <div class="report-grid">
+        <!-- Dataset Telemetry Card -->
+        <div class="report-card">
+          <div class="report-card-title">Dataset Telemetry</div>
+          <div class="report-metrics-row">
+            <div class="report-metric">
+              <span class="report-metric-val" id="repTotalRows">0</span>
+              <span class="report-metric-lbl">Total Samples</span>
+            </div>
+            <div class="report-metric">
+              <span class="report-metric-val" id="repAvgWpm">0</span>
+              <span class="report-metric-lbl">Avg WPM</span>
+            </div>
+            <div class="report-metric">
+              <span class="report-metric-val" id="repAvgErrors">0</span>
+              <span class="report-metric-lbl">Avg Corrections</span>
+            </div>
+          </div>
+          <div class="report-metrics-row" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+            <div class="report-metric">
+              <span class="report-metric-val" id="repTotalBlinks">0</span>
+              <span class="report-metric-lbl">Total Blinks</span>
+            </div>
+            <div class="report-metric">
+              <span class="report-metric-val" id="repTotalYawns">0</span>
+              <span class="report-metric-lbl">Total Yawns</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Correlation Matrix Card -->
+        <div class="report-card">
+          <div class="report-card-title">Pearson Correlation Matrix</div>
+          <div class="report-matrix-list">
+            <div class="matrix-item">
+              <div class="matrix-item-desc">Typing Speed vs. Fatigue Score</div>
+              <div class="matrix-item-val" id="corrWpm">-0.000</div>
+            </div>
+            <div class="matrix-item">
+              <div class="matrix-item-desc">Blink Frequency vs. Fatigue Score</div>
+              <div class="matrix-item-val" id="corrBlinks">+0.000</div>
+            </div>
+          </div>
+          <div class="matrix-note">
+            * Values range from -1 (inverse correlation) to +1 (direct correlation).
+          </div>
+        </div>
+
+        <!-- Model Output Profile -->
+        <div class="report-card" style="grid-column: span 2;">
+          <div class="report-card-title">Model Output Profile (Percentage Distribution)</div>
+          <div class="distribution-bars">
+            <div class="dist-bar-item">
+              <div class="dist-label-row">
+                <span>Low Fatigue Class</span>
+                <span id="distLowPct">0.0%</span>
+              </div>
+              <div class="dist-track">
+                <div class="dist-fill fill-green" id="distLowBar" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="dist-bar-item">
+              <div class="dist-label-row">
+                <span>Medium Fatigue Class</span>
+                <span id="distMediumPct">0.0%</span>
+              </div>
+              <div class="dist-track">
+                <div class="dist-fill fill-yellow" id="distMediumBar" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="dist-bar-item">
+              <div class="dist-label-row">
+                <span>High Fatigue Class</span>
+                <span id="distHighPct">0.0%</span>
+              </div>
+              <div class="dist-track">
+                <div class="dist-fill fill-red" id="distHighBar" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-modal-actions" style="margin-top:24px;">
+        <a href="/api/export-csv" class="btn-reset" style="text-decoration:none; display:inline-flex; align-items:center;" id="reportDownloadCSV">
+          <span class="btn-reset-icon">📥</span> Download CSV Dataset
+        </a>
+        <button id="btnCloseReport" onclick="dismissReportModal()">Close Report</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* ─── Break Alert Overlay ─── */
+    #breakAlertOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    #breakAlertBox {
+      background: var(--alert-bg);
+      border: 1px solid var(--alert-border);
+      border-radius: 20px;
+      padding: 40px 44px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(255,71,87,0.25), 0 20px 60px rgba(0,0,0,0.5);
+      animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);   opacity: 1; }
+    }
+
+    .alert-icon {
+      font-size: 52px;
+      margin-bottom: 16px;
+      animation: alertPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes alertPulse {
+      0%,100% { transform: scale(1);    }
+      50%      { transform: scale(1.12); }
+    }
+
+    .alert-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--red);
+      margin-bottom: 12px;
+      letter-spacing: -0.4px;
+    }
+
+    .alert-body {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .alert-suggestion {
+      background: rgba(255,71,87,0.1);
+      border: 1px solid rgba(255,71,87,0.2);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 28px;
+    }
+
+    .alert-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .alert-actions button {
+      padding: 11px 28px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .alert-actions button:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    #btnSnooze  { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    #btnDismiss { background: var(--red);      color: #fff; }
+
+    /* Reset Button Style */
+    .btn-reset {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+
+    .btn-reset:hover {
+      background: var(--btn-hover-bg);
+      border-color: var(--muted);
+      transform: translateY(-1px);
+    }
+
+    .btn-reset:active {
+      transform: translateY(1px);
+    }
+
+    .btn-reset-icon {
+      font-size: 14px;
+    }
+
+    /* Reset Confirmation Modal styling */
+    #resetModalOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    #resetModalBox {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 44px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(108,99,255,0.1), 0 20px 60px rgba(0,0,0,0.5);
+      animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .reset-modal-icon {
+      font-size: 52px;
+      margin-bottom: 16px;
+      animation: rotateIcon 1s ease-in-out;
+    }
+
+    @keyframes rotateIcon {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .reset-modal-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.4px;
+    }
+
+    .reset-modal-body {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .reset-modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .reset-modal-actions button {
+      padding: 11px 28px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .reset-modal-actions button:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    #btnCancelReset {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    #btnConfirmReset {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ─── Research Report Overlay ─── */
+    #reportModalOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    #reportModalBox {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 36px;
+      max-width: 640px;
+      width: 90%;
+      box-shadow: 0 0 60px rgba(108,99,255,0.1), 0 20px 60px rgba(0,0,0,0.5);
+      animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      color: var(--text);
+    }
+
+    .report-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .report-modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+    }
+
+    .btn-close-modal {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+      transition: color 0.2s;
+    }
+
+    .btn-close-modal:hover {
+      color: var(--text);
+    }
+
+    .report-modal-body {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .report-grid {
+        grid-template-columns: 1fr;
+      }
+      #reportModalBox {
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+    }
+
+    .report-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .report-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+
+    .report-metrics-row {
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+    }
+
+    .report-metric {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .report-metric-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent2);
+    }
+
+    .report-metric-lbl {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .report-matrix-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .matrix-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .matrix-item-desc {
+      color: var(--muted);
+    }
+
+    .matrix-item-val {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--accent3);
+      background: rgba(255, 107, 157, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .matrix-note {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 10px;
+      font-style: italic;
+    }
+
+    .distribution-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dist-bar-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dist-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .dist-track {
+      height: 8px;
+      background: var(--surface);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .dist-fill {
+      height: 100%;
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .fill-green { background: var(--green); }
+    .fill-yellow { background: var(--yellow); }
+    .fill-red { background: var(--red); }
+
+    .report-modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .report-modal-actions button {
+      padding: 10px 24px;
+      border-radius: 50px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .report-modal-actions button:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    #btnCloseReport {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+  </style>
+
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  <script>
+    // Trigger toast alerts for Flask flashed messages on dashboard load
+    window.addEventListener('load', () => {
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            if (window.showToast) {
+              window.showToast("{{ message }}", "{{ 'error' if category == 'danger' or category == 'error' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }}");
+            }
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    });
+  </script>
+</body>
+</html>

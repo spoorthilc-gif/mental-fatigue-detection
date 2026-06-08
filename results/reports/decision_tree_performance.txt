@@ -1,0 +1,24 @@
+=== DECISION TREE MODEL PERFORMANCE REPORT ===
+
+Model: DecisionTreeClassifier
+Parameters: max_depth=2, criterion=gini, random_state=42
+
+--- ACCURACY METRICS ---
+Training set accuracy: 1.0000
+Testing set accuracy:  1.0000
+
+--- GENERALIZATION METRICS ---
+Precision (Weighted):   1.0000
+Recall (Weighted):      1.0000
+F1-score (Weighted):    1.0000
+
+--- FEATURE IMPORTANCES ---
+* wpm: 100.0%
+* errors: 0.0%
+* session_duration: 0.0%
+* productivity_score: 0.0%
+
+--- CONFIDENCE ANALYSIS ---
+* Average Confidence (Overall):   1.0000
+* Average Confidence (Correct):   1.0000
+* Average Confidence (Incorrect): 0.0000

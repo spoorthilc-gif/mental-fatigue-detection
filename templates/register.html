@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FatigueAI — Sign Up</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* Default theme: Dark */
+    :root, [data-theme="dark"] {
+      --bg: #0a0d14;
+      --surface: #111624;
+      --surface2: #1a2035;
+      --border: rgba(255,255,255,0.07);
+      --accent: #6c63ff;
+      --accent2: #00d4ff;
+      --green: #00e5a0;
+      --yellow: #ffd166;
+      --red: #ff4757;
+      --text: #e8ecf4;
+      --muted: #7a8399;
+      --radius: 16px;
+      --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --btn-bg: rgba(255, 255, 255, 0.03);
+      --btn-hover-bg: rgba(255, 255, 255, 0.08);
+      --grid-color: rgba(108, 99, 255, 0.03);
+      --orb-color: rgba(108, 99, 255, 0.12);
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface2: #e2e8f0;
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #6c63ff;
+      --accent2: #00b4d8;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --text: #1e293b;
+      --muted: #64748b;
+      --card-shadow: 0 8px 24px rgba(108, 99, 255, 0.05);
+      --btn-bg: rgba(0, 0, 0, 0.03);
+      --btn-hover-bg: rgba(0, 0, 0, 0.06);
+      --grid-color: rgba(108, 99, 255, 0.05);
+      --orb-color: rgba(108, 99, 255, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+      position: relative;
+      transition: background 0.3s ease, color 0.3s ease;
+      padding: 40px 0;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+      transition: background-image 0.3s ease;
+    }
+
+    /* Glow orbs */
+    body::after {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--orb-color) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatOrb 8s ease-in-out infinite;
+      transition: background 0.3s ease;
+    }
+
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(60px, 40px); }
+    }
+
+    .theme-toggle-container {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 10;
+    }
+
+    .theme-toggle-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.3s, border-color 0.3s, transform 0.2s;
+    }
+
+    .theme-toggle-btn:hover {
+      transform: scale(1.05);
+      background: var(--btn-hover-bg);
+      border-color: var(--accent);
+    }
+
+    .auth-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow: var(--card-shadow);
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+      backdrop-filter: blur(20px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-text {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .auth-title {
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .auth-sub {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.3s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(108, 99, 255, 0.2);
+    }
+
+    .btn-auth {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s, box-shadow 0.2s;
+      margin-top: 28px;
+    }
+
+    .btn-auth:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(108, 99, 255, 0.35);
+      opacity: 0.95;
+    }
+
+    .btn-auth:active {
+      transform: translateY(1px);
+    }
+
+    .auth-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .auth-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .auth-link:hover {
+      color: var(--accent2);
+    }
+
+    /* Flash Messages */
+    .flash-messages {
+      margin-bottom: 20px;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-error {
+      background: rgba(255, 71, 87, 0.1);
+      border-color: rgba(255, 71, 87, 0.25);
+      color: var(--red);
+    }
+
+    .alert-success {
+      background: rgba(0, 229, 160, 0.1);
+      border-color: rgba(0, 229, 160, 0.25);
+      color: var(--green);
+    }
+
+    .alert-info {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: rgba(0, 212, 255, 0.25);
+      color: var(--accent2);
+    }
+
+    .alert-warning {
+      background: rgba(255, 209, 102, 0.1);
+      border-color: rgba(255, 209, 102, 0.25);
+      color: var(--yellow);
+    }
+
+    /* Page Loader Overlay */
+    #page-loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    .loader-content { text-align: center; }
+    .loader-spinner {
+      font-size: 64px;
+      animation: pulse-loader 1.5s infinite ease-in-out;
+      margin-bottom: 16px;
+    }
+    .loader-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--text) 30%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 1.5px;
+    }
+    @keyframes pulse-loader {
+      0%, 100% { transform: scale(1); opacity: 0.8; filter: drop-shadow(0 0 10px rgba(108, 99, 255, 0.2)); }
+      50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 25px rgba(0, 212, 255, 0.5)); }
+    }
+
+    /* Toast Notification System */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 380px;
+      width: calc(100% - 48px);
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      border-radius: 12px;
+      color: var(--text);
+      box-shadow: var(--card-shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error { border-left: 4px solid var(--red); }
+    .toast.warning { border-left: 4px solid var(--yellow); }
+    .toast.info { border-left: 4px solid var(--accent2); }
+
+    .toast-icon { font-size: 18px; flex-shrink: 0; }
+    .toast-content { flex-grow: 1; font-size: 13px; font-weight: 500; line-height: 1.4; }
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page Loader -->
+  <div id="page-loader">
+    <div class="loader-content">
+      <div class="loader-spinner">🧠</div>
+      <div class="loader-text" style="font-family: 'Inter', sans-serif;">FatigueAI</div>
+    </div>
+  </div>
+
+  <div class="theme-toggle-container">
+    <button id="themeToggleBtn" onclick="toggleTheme()" class="theme-toggle-btn" title="Toggle Light/Dark Mode">
+      <span id="themeToggleIcon">🌙</span>
+    </button>
+  </div>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <a href="/" class="brand" style="text-decoration: none;">
+        <div class="brand-icon">🧠</div>
+        <span class="brand-text">FatigueAI</span>
+      </a>
+
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-sub">Sign up to begin your fatigue analytics journey</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'error' else 'error' }}">
+                <span>{{ '⚠️' if category in ['error', 'warning'] else '✅' if category == 'success' else 'ℹ' }}</span>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('auth.register') }}" method="POST">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input class="form-input" type="text" id="username" name="username" placeholder="Choose a username" required minlength="3" autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input class="form-input" type="email" id="email" name="email" placeholder="Enter your email" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password" name="password" placeholder="Create a password (min. 6 chars)" required minlength="6" autocomplete="new-password">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Confirm Password</label>
+          <input class="form-input" type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required minlength="6" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="btn-auth">Sign Up</button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="{{ url_for('auth.login') }}" class="auth-link">Sign In</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+      const icon = document.getElementById('themeToggleIcon');
+      if (icon) {
+        icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const defaultTheme = savedTheme || (systemDark ? 'dark' : 'light');
+    setTheme(defaultTheme);
+
+    // Toast Notification System
+    function showToast(message, type = 'info') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      let icon = 'ℹ️';
+      if (type === 'success') icon = '✅';
+      if (type === 'error') icon = '❌';
+      if (type === 'warning') icon = '⚠️';
+
+      toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-content">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      `;
+
+      container.appendChild(toast);
+      
+      setTimeout(() => toast.classList.add('show'), 50);
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+      }, 4000);
+    }
+
+    // Loader Dismiss
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('page-loader');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.style.display = 'none', 500);
+      }
+
+      // Check for backend flashes
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            showToast("{{ message }}", "{{ 'error' if category == 'danger' or category == 'error' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }}");
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    });
+  </script>
+</body>
+</html>
