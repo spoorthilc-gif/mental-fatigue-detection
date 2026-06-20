@@ -21,24 +21,26 @@ try:
 except Exception as e:
     print(f"[ML ERROR] Failed to load validation models: {e}")
 
-def run_ml_inference(wpm, errors, session_duration):
+def run_ml_inference(wpm, errors, session_duration, eye_aperture=None, mouth_stretch=None, face_active=None):
     """Run real-time inference using the Random Forest Ensemble model.
-    Uses real physical indicators from the webcam tracker if available, otherwise simulates them.
+    Uses real physical indicators from the webcam tracker or browser metrics if available, otherwise simulates them.
     Returns: (fatigue_level, confidence, reasoning, eye_aperture, mouth_stretch)
     """
-    face_active = False
-    eye_aperture = 10.0
-    mouth_stretch = 16.0
-    
-    try:
-        from tracker.webcam_tracker import tracker
-        metrics = tracker.get_metrics()
-        if metrics.get("is_active") and metrics.get("face_detected"):
-            eye_aperture = metrics.get("eye_aperture", 10.0)
-            mouth_stretch = metrics.get("mouth_stretch", 16.0)
-            face_active = True
-    except Exception as e:
-        print(f"[ML INFERENCE ERROR] Failed to fetch metrics from webcam: {e}")
+    if face_active is None:
+        face_active = False
+        
+    if eye_aperture is None or mouth_stretch is None:
+        eye_aperture = 10.0
+        mouth_stretch = 16.0
+        try:
+            from tracker.webcam_tracker import tracker
+            metrics = tracker.get_metrics()
+            if metrics.get("is_active") and metrics.get("face_detected"):
+                eye_aperture = metrics.get("eye_aperture", 10.0)
+                mouth_stretch = metrics.get("mouth_stretch", 16.0)
+                face_active = True
+        except Exception as e:
+            print(f"[ML INFERENCE ERROR] Failed to fetch metrics from webcam: {e}")
 
     if not face_active:
         # Simulated physical coordinates matching KSS distributions as fallback

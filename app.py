@@ -1,7 +1,7 @@
 import os
 import time
 import atexit
-from flask import Flask, render_template, jsonify, Response
+from flask import Flask, render_template, jsonify, Response, request
 from flask_login import login_required, current_user
 from auth import auth as auth_blueprint, init_login_manager
 from tracker.keyboard_listener import start_listener, get_stats, calc_fatigue, reset_stats
@@ -47,6 +47,9 @@ os.makedirs(os.path.join(app.instance_path, 'config'), exist_ok=True)
 _last_log_time = 0
 _last_logged_char_count = -1
 
+# Thread-safe global cache for browser-side telemetry data
+browser_telemetry_cache = {}
+
 
 @app.route('/')
 def welcome():
@@ -81,10 +84,65 @@ def api_diagnostics():
     })
 
 
+@app.route('/api/browser-telemetry', methods=['POST'])
+@login_required
+def api_browser_telemetry():
+    """Receive and cache typing telemetry from client-side JS."""
+    data = request.get_json() or {}
+    user_id = current_user.id
+    if user_id not in browser_telemetry_cache:
+        browser_telemetry_cache[user_id] = {}
+        
+    browser_telemetry_cache[user_id].update({
+        "wpm": float(data.get("wpm", 0.0)),
+        "errors": int(data.get("errors", 0)),
+        "session_duration": float(data.get("session_duration", 0.0)),
+        "chars": int(data.get("chars", 0)),
+        "idle_time": float(data.get("idle_time", 0.0)),
+        "last_updated": time.time()
+    })
+    return jsonify({"status": "success"})
+
+
+@app.route('/api/browser-face-metrics', methods=['POST'])
+@login_required
+def api_browser_face_metrics():
+    """Receive and cache facial coordinate analytics from client-side MediaPipe JS."""
+    data = request.get_json() or {}
+    user_id = current_user.id
+    if user_id not in browser_telemetry_cache:
+        browser_telemetry_cache[user_id] = {}
+        
+    browser_telemetry_cache[user_id].update({
+        "eye_aperture": float(data.get("eye_aperture", 10.0)),
+        "mouth_stretch": float(data.get("mouth_stretch", 16.0)),
+        "blink_count": int(data.get("blink_count", 0)),
+        "yawn_count": int(data.get("yawn_count", 0)),
+        "last_updated": time.time()
+    })
+    return jsonify({"status": "success"})
+
+
+@app.route('/api/debug-cache')
+def api_debug_cache():
+    """Return the current contents of the global browser telemetry cache."""
+    return jsonify({str(k): v for k, v in browser_telemetry_cache.items()})
+
+
 @app.route('/api/stats')
 @login_required
 def api_stats():
     """Return live typing statistics as JSON."""
+    if os.getenv('RENDER') == 'true':
+        cache_val = browser_telemetry_cache.get(current_user.id, {})
+        last_updated = cache_val.get("last_updated", 0.0)
+        if time.time() - last_updated <= 10.0:
+            return jsonify({
+                "wpm": cache_val.get("wpm", 0.0),
+                "errors": cache_val.get("errors", 0),
+                "elapsed": cache_val.get("session_duration", 0.0),
+                "chars": cache_val.get("chars", 0)
+            })
     return jsonify(get_stats())
 
 
@@ -93,7 +151,23 @@ def api_stats():
 def api_fatigue():
     """Return fatigue level based on current stats."""
     global _last_log_time, _last_logged_char_count
-    stats = get_stats()
+    
+    use_browser = False
+    if os.getenv('RENDER') == 'true':
+        cache_val = browser_telemetry_cache.get(current_user.id, {})
+        last_updated = cache_val.get("last_updated", 0.0)
+        if time.time() - last_updated <= 10.0:
+            use_browser = True
+            stats = {
+                "wpm": cache_val.get("wpm", 0.0),
+                "errors": cache_val.get("errors", 0),
+                "elapsed": cache_val.get("session_duration", 0.0),
+                "chars": cache_val.get("chars", 0)
+            }
+            
+    if not use_browser:
+        stats = get_stats()
+        
     level, score = calc_fatigue(stats)
 
     # ── Auto behavioral logging (every 10s if active key events occur) ──
@@ -110,13 +184,17 @@ def api_fatigue():
             prod_score = xai_data["productivity_score"]
             conc_score = xai_data["concentration_score"]
 
-            # Run ML inference to get predicted level and confidence
-            ml_level, ml_conf, ml_reasons, eye_ap, mouth_st = run_ml_inference(wpm, errors, duration)
-
-            # Get webcam metrics
-            webcam_metrics = webcam_tracker.get_metrics()
-            blinks = webcam_metrics.get("blink_count", 0)
-            yawns = webcam_metrics.get("yawn_count", 0)
+            if use_browser:
+                eye_ap = cache_val.get("eye_aperture", 10.0)
+                mouth_st = cache_val.get("mouth_stretch", 16.0)
+                ml_level, ml_conf, ml_reasons, _, _ = run_ml_inference(wpm, errors, duration, eye_ap, mouth_st, True)
+                blinks = cache_val.get("blink_count", 0)
+                yawns = cache_val.get("yawn_count", 0)
+            else:
+                ml_level, ml_conf, ml_reasons, eye_ap, mouth_st = run_ml_inference(wpm, errors, duration)
+                webcam_metrics = webcam_tracker.get_metrics()
+                blinks = webcam_metrics.get("blink_count", 0)
+                yawns = webcam_metrics.get("yawn_count", 0)
 
             # Save full behavioral snapshot
             log_behavior(
@@ -143,12 +221,25 @@ def api_fatigue():
 @login_required
 def api_predict_fatigue():
     """Predict fatigue level in real-time using the trained ML model."""
-    stats = get_stats()
-    wpm = stats.get('wpm', 0.0)
-    errors = stats.get('errors', 0)
-    duration = stats.get('elapsed', 0.0)
-    
-    level, confidence, reasoning, eye_aperture, mouth_stretch = run_ml_inference(wpm, errors, duration)
+    use_browser = False
+    if os.getenv('RENDER') == 'true':
+        cache_val = browser_telemetry_cache.get(current_user.id, {})
+        last_updated = cache_val.get("last_updated", 0.0)
+        if time.time() - last_updated <= 10.0:
+            use_browser = True
+            wpm = cache_val.get("wpm", 0.0)
+            errors = cache_val.get("errors", 0)
+            duration = cache_val.get("session_duration", 0.0)
+            eye_ap = cache_val.get("eye_aperture", 10.0)
+            mouth_st = cache_val.get("mouth_stretch", 16.0)
+            level, confidence, reasoning, eye_aperture, mouth_stretch = run_ml_inference(wpm, errors, duration, eye_ap, mouth_st, True)
+            
+    if not use_browser:
+        stats = get_stats()
+        wpm = stats.get('wpm', 0.0)
+        errors = stats.get('errors', 0)
+        duration = stats.get('elapsed', 0.0)
+        level, confidence, reasoning, eye_aperture, mouth_stretch = run_ml_inference(wpm, errors, duration)
     
     return jsonify({
         "fatigue_level": level,
@@ -163,8 +254,34 @@ def api_predict_fatigue():
 @login_required
 def api_webcam_status():
     """Return status and active metrics of the webcam tracker."""
+    if os.getenv('RENDER') == 'true':
+        cache_val = browser_telemetry_cache.get(current_user.id, {})
+        last_updated = cache_val.get("last_updated", 0.0)
+        if time.time() - last_updated <= 10.0:
+            return jsonify({
+                "is_active": True,
+                "face_detected": True,
+                "fps": 30,
+                "blink_count": cache_val.get("blink_count", 0),
+                "yawn_count": cache_val.get("yawn_count", 0),
+                "eye_aperture": cache_val.get("eye_aperture", 10.0),
+                "mouth_stretch": cache_val.get("mouth_stretch", 16.0),
+                "cloud_mode": True
+            })
+        else:
+            return jsonify({
+                "is_active": False,
+                "face_detected": False,
+                "fps": 0,
+                "blink_count": 0,
+                "yawn_count": 0,
+                "eye_aperture": 10.0,
+                "mouth_stretch": 16.0,
+                "cloud_mode": True
+            })
+            
     metrics = webcam_tracker.get_metrics()
-    metrics["cloud_mode"] = os.getenv('RENDER') == 'true'
+    metrics["cloud_mode"] = False
     return jsonify(metrics)
 
 
@@ -207,7 +324,22 @@ def api_logs():
 @login_required
 def api_explain():
     """Calculate and return Explainable AI fatigue reasoning."""
-    stats = get_stats()
+    use_browser = False
+    if os.getenv('RENDER') == 'true':
+        cache_val = browser_telemetry_cache.get(current_user.id, {})
+        last_updated = cache_val.get("last_updated", 0.0)
+        if time.time() - last_updated <= 10.0:
+            use_browser = True
+            stats = {
+                "wpm": cache_val.get("wpm", 0.0),
+                "errors": cache_val.get("errors", 0),
+                "elapsed": cache_val.get("session_duration", 0.0),
+                "chars": cache_val.get("chars", 0)
+            }
+            
+    if not use_browser:
+        stats = get_stats()
+        
     level, score = calc_fatigue(stats)
     wpm = stats.get('wpm', 0.0)
     errors = stats.get('errors', 0)
@@ -306,6 +438,19 @@ def api_reset():
     _last_log_time = 0
     _last_logged_char_count = -1
     clear_logs(user_id=current_user.id)
+    if current_user.id in browser_telemetry_cache:
+        browser_telemetry_cache[current_user.id] = {
+            "wpm": 0.0,
+            "errors": 0,
+            "session_duration": 0.0,
+            "chars": 0,
+            "idle_time": 0.0,
+            "eye_aperture": 10.0,
+            "mouth_stretch": 16.0,
+            "blink_count": 0,
+            "yawn_count": 0,
+            "last_updated": time.time()
+        }
     # Reset webcam tracker counters
     try:
         webcam_tracker.reset_counts()

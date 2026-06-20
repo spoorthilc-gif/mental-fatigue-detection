@@ -205,6 +205,24 @@ async function executeReset() {
     if (data.status === 'ok') {
       dismissResetModal();
 
+      // Reset local browser telemetry states
+      browserChars = 0;
+      browserErrors = 0;
+      browserStartTime = null;
+      browserLastEventTime = null;
+      browserWpm = 0.0;
+      browserSessionDuration = 0.0;
+      browserIdleTime = 0.0;
+      browserBlinks = 0;
+      browserYawns = 0;
+      browserEyeAperture = 10.0;
+      browserMouthStretch = 16.0;
+      blinkState = false;
+      yawnState = false;
+      
+      const typingBox = document.getElementById('telemetryTextBox');
+      if (typingBox) typingBox.value = '';
+
       // 1. Clear all frontend data arrays
       wpmData.length = 0;
       errorData.length = 0;
@@ -883,13 +901,26 @@ async function initCharts() {
         
         const emptyStateEl = document.getElementById('webcamEmptyState');
         const webcamStreamEl = document.getElementById('webcamStream');
+        const browserCanvas = document.getElementById('browserWebcamCanvas');
+
+        // Automatically initialize browser-side telemetry if in cloud mode
+        if (webcamData.cloud_mode && !browserTelemetryInitialized) {
+          browserTelemetryInitialized = true;
+          startBrowserTelemetry();
+        }
 
         if (webcamBadge) {
           if (webcamData.is_active) {
             if (emptyStateEl) emptyStateEl.style.display = 'none';
-            if (webcamStreamEl) webcamStreamEl.style.display = 'block';
+            if (webcamData.cloud_mode) {
+              if (webcamStreamEl) webcamStreamEl.style.display = 'none';
+              if (browserCanvas) browserCanvas.style.display = 'block';
+            } else {
+              if (webcamStreamEl) webcamStreamEl.style.display = 'block';
+              if (browserCanvas) browserCanvas.style.display = 'none';
+            }
             if (webcamData.face_detected) {
-              webcamBadge.textContent = `Active (${webcamData.fps} FPS)`;
+              webcamBadge.textContent = webcamData.cloud_mode ? 'Browser AI Active' : `Active (${webcamData.fps} FPS)`;
               webcamBadge.className = 'card-badge badge-green';
             } else {
               webcamBadge.textContent = 'No Face';
@@ -901,14 +932,15 @@ async function initCharts() {
               const titleEl = emptyStateEl.querySelector('.empty-title');
               const descEl = emptyStateEl.querySelector('.empty-desc');
               if (webcamData.cloud_mode) {
-                if (titleEl) titleEl.textContent = 'Webcam Offline (Cloud Mode)';
-                if (descEl) descEl.textContent = 'Physical camera sensors are disabled in cloud environments. FatigueAI has automatically activated simulated physiological telemetry and the Random Forest fallback model.';
+                if (titleEl) titleEl.textContent = 'Browser AI Tracking Active';
+                if (descEl) descEl.textContent = 'Please grant webcam permissions in the browser to start real-time facial feature tracking, or type in the input area above to begin session analysis.';
               } else {
                 if (titleEl) titleEl.textContent = 'Webcam Offline / Locked';
                 if (descEl) descEl.textContent = 'Connect a USB camera or allow browser permissions to track physical landmark telemetry.';
               }
             }
             if (webcamStreamEl) webcamStreamEl.style.display = 'none';
+            if (browserCanvas) browserCanvas.style.display = 'none';
             webcamBadge.textContent = 'Inactive';
             webcamBadge.className = 'card-badge badge-gray';
           }
@@ -1107,3 +1139,343 @@ window.addEventListener('load', () => {
 });
 
 window.addEventListener('DOMContentLoaded', initCharts);
+
+// ─── Browser-side Telemetry Tracking Engine (Cloud Fallback) ────────────────
+let browserTelemetryInitialized = false;
+
+let browserChars = 0;
+let browserErrors = 0;
+let browserStartTime = null;
+let browserLastEventTime = null;
+let browserWpm = 0.0;
+let browserSessionDuration = 0.0;
+let browserIdleTime = 0.0;
+
+let browserBlinks = 0;
+let browserYawns = 0;
+let browserEyeAperture = 10.0;
+let browserMouthStretch = 16.0;
+
+let blinkState = false;
+let blinkStartTime = 0;
+let yawnState = false;
+let yawnStartTime = 0;
+
+function startBrowserTelemetry() {
+  console.log('[TELEMETRY] Starting client-side telemetry trackers (Cloud Mode)...');
+  
+  // 1. Show/hide webcam views
+  const webcamStream = document.getElementById('webcamStream');
+  const browserCanvas = document.getElementById('browserWebcamCanvas');
+  const browserVideo = document.getElementById('browserWebcamVideo');
+  const webcamBadge = document.getElementById('webcamStatusBadge');
+  
+  if (webcamStream) webcamStream.style.display = 'none';
+  if (browserCanvas) browserCanvas.style.display = 'block';
+  
+  // 2. Setup local keyboard telemetry
+  const typingBox = document.getElementById('telemetryTextBox');
+  if (typingBox) {
+    typingBox.addEventListener('input', (e) => {
+      const val = e.target.value;
+      browserChars = val.length;
+      
+      const now = Date.now() / 1000.0;
+      if (!browserStartTime) browserStartTime = now;
+      browserLastEventTime = now;
+    });
+    
+    typingBox.addEventListener('keydown', (e) => {
+      const now = Date.now() / 1000.0;
+      if (!browserStartTime) browserStartTime = now;
+      browserLastEventTime = now;
+      
+      if (e.key === 'Backspace') {
+        browserErrors++;
+      }
+    });
+  }
+  
+  // Periodically compute and upload keyboard stats (every 1s)
+  setInterval(async () => {
+    const now = Date.now() / 1000.0;
+    if (browserStartTime) {
+      browserSessionDuration = now - browserStartTime;
+      browserWpm = (browserChars / 5.0) / (Math.max(browserSessionDuration, 1.0) / 60.0);
+      browserWpm = Math.min(browserWpm, 250); // limit anomalies
+    }
+    
+    if (browserLastEventTime) {
+      browserIdleTime = now - browserLastEventTime;
+    } else {
+      browserIdleTime = 0.0;
+    }
+    
+    // Update badge status
+    const telemetryBadge = document.getElementById('telemetryActiveBadge');
+    if (telemetryBadge) {
+      if (browserIdleTime > 15.0) {
+        telemetryBadge.textContent = 'Idle';
+        telemetryBadge.className = 'card-badge badge-yellow';
+      } else {
+        telemetryBadge.textContent = 'Tracking Active';
+        telemetryBadge.className = 'card-badge badge-green';
+      }
+    }
+    
+    // Only upload if session has started
+    if (browserStartTime) {
+      try {
+        await fetch('/api/browser-telemetry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wpm: parseFloat(browserWpm.toFixed(2)),
+            errors: browserErrors,
+            session_duration: parseFloat(browserSessionDuration.toFixed(1)),
+            chars: browserChars,
+            idle_time: parseFloat(browserIdleTime.toFixed(1))
+          })
+        });
+      } catch (err) {
+        console.error('[TELEMETRY] Keyboard upload failed:', err);
+      }
+    }
+  }, 1000);
+  
+  // 3. Setup browser MediaPipe FaceMesh & webcam
+  if (browserVideo && browserCanvas) {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } })
+        .then((stream) => {
+          browserVideo.srcObject = stream;
+          if (webcamBadge) {
+            webcamBadge.textContent = 'Initializing FaceMesh…';
+            webcamBadge.className = 'card-badge badge-yellow';
+          }
+          
+          try {
+            console.log('[TELEMETRY] Initializing FaceMesh solution...');
+            if (typeof FaceMesh === 'undefined') {
+              throw new Error('MediaPipe FaceMesh script was not loaded. Check internet connection or CDN status.');
+            }
+            if (typeof Camera === 'undefined') {
+              throw new Error('MediaPipe Camera utility was not loaded. Check internet connection or CDN status.');
+            }
+            
+            const faceMesh = new FaceMesh({
+              locateFile: (file) => {
+                console.log('[TELEMETRY] Fetching FaceMesh solutions asset:', file);
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+              }
+            });
+            
+            faceMesh.setOptions({
+              maxNumFaces: 1,
+              refineLandmarks: true,
+              minDetectionConfidence: 0.5,
+              minTrackingConfidence: 0.5
+            });
+            
+            faceMesh.onResults((results) => {
+              try {
+                onFaceMeshResults(results, browserCanvas, browserVideo);
+              } catch (err) {
+                console.error('[TELEMETRY] Error during landmark processing:', err);
+              }
+            });
+            
+            const camera = new Camera(browserVideo, {
+              onFrame: async () => {
+                try {
+                  await faceMesh.send({ image: browserVideo });
+                } catch (err) {
+                  console.error('[TELEMETRY] Error forwarding frame to FaceMesh:', err);
+                }
+              },
+              width: 320,
+              height: 240
+            });
+            camera.start();
+            console.log('[TELEMETRY] Browser webcam tracking active & rendering landmarks.');
+          } catch (initErr) {
+            console.error('[TELEMETRY] Failed to initialize webcam tracking:', initErr);
+            if (webcamBadge) {
+              webcamBadge.textContent = 'FaceMesh Error';
+              webcamBadge.className = 'card-badge badge-red';
+            }
+            const emptyState = document.getElementById('webcamEmptyState');
+            if (emptyState) {
+              emptyState.style.display = 'flex';
+              const titleEl = emptyState.querySelector('.empty-title');
+              const descEl = emptyState.querySelector('.empty-desc');
+              if (titleEl) titleEl.textContent = 'Browser Tracking Error';
+              if (descEl) descEl.textContent = 'Failed to load browser AI libraries: ' + initErr.message;
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('[TELEMETRY] Camera access denied or failed:', err);
+          if (webcamBadge) {
+            webcamBadge.textContent = 'Camera Off (Blocked)';
+            webcamBadge.className = 'card-badge badge-red';
+          }
+          const emptyState = document.getElementById('webcamEmptyState');
+          if (emptyState) {
+            emptyState.style.display = 'flex';
+            const titleEl = emptyState.querySelector('.empty-title');
+            const descEl = emptyState.querySelector('.empty-desc');
+            if (titleEl) titleEl.textContent = 'Camera Permission Blocked';
+            if (descEl) descEl.textContent = 'Please allow camera permissions in your browser address bar to track live landmarks.';
+          }
+        });
+    }
+  }
+}
+
+function dist(a, b) {
+  return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2) + Math.pow(a.z - b.z, 2));
+}
+
+function onFaceMeshResults(results, canvasEl, videoEl) {
+  const ctx = canvasEl.getContext('2d');
+  const w = canvasEl.width;
+  const h = canvasEl.height;
+  
+  if (canvasEl.width !== videoEl.videoWidth || canvasEl.height !== videoEl.videoHeight) {
+    canvasEl.width = videoEl.videoWidth || 320;
+    canvasEl.height = videoEl.videoHeight || 240;
+  }
+  
+  // Draw video frame
+  ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+  
+  const webcamBadge = document.getElementById('webcamStatusBadge');
+  const emptyState = document.getElementById('webcamEmptyState');
+  
+  if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+    if (emptyState) emptyState.style.display = 'none';
+    if (webcamBadge) {
+      webcamBadge.textContent = 'Browser AI Active';
+      webcamBadge.className = 'card-badge badge-green';
+    }
+    
+    const faceLandmarks = results.multiFaceLandmarks[0];
+    
+    // Draw landmarks
+    ctx.fillStyle = '#00e5a0';
+    
+    // Eye and mouth index landmarks
+    const eyeIndices = [33, 133, 160, 144, 158, 153, 159, 145, 263, 362, 385, 380, 387, 373, 386, 374, 13, 14, 0, 17, 61, 291];
+    eyeIndices.forEach(idx => {
+      const pt = faceLandmarks[idx];
+      ctx.beginPath();
+      ctx.arc(pt.x * canvasEl.width, pt.y * canvasEl.height, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+    
+    // ── EAR left eye calculation ──
+    const p160 = faceLandmarks[160];
+    const p144 = faceLandmarks[144];
+    const p158 = faceLandmarks[158];
+    const p153 = faceLandmarks[153];
+    const p33 = faceLandmarks[33];
+    const p133 = faceLandmarks[133];
+    const ear_left = (dist(p160, p144) + dist(p158, p153)) / (2.0 * dist(p33, p133));
+    
+    // ── EAR right eye calculation ──
+    const p385 = faceLandmarks[385];
+    const p380 = faceLandmarks[380];
+    const p387 = faceLandmarks[387];
+    const p373 = faceLandmarks[373];
+    const p362 = faceLandmarks[362];
+    const p263 = faceLandmarks[263];
+    const ear_right = (dist(p385, p380) + dist(p387, p373)) / (2.0 * dist(p362, p263));
+    
+    const ear = (ear_left + ear_right) / 2.0;
+    
+    // ── Pixel-scaled eye aperture (480 is standard frame height scale) ──
+    const y159 = faceLandmarks[159].y;
+    const y145 = faceLandmarks[145].y;
+    const y386 = faceLandmarks[386].y;
+    const y374 = faceLandmarks[374].y;
+    const eye_height_left = Math.max(0.0, y145 - y159) * 480;
+    const eye_height_right = Math.max(0.0, y374 - y386) * 480;
+    browserEyeAperture = parseFloat((eye_height_left + eye_height_right).toFixed(2));
+    
+    // ── MAR mouth aspect ratio calculation ──
+    const p13 = faceLandmarks[13];
+    const p14 = faceLandmarks[14];
+    const p61 = faceLandmarks[61];
+    const p291 = faceLandmarks[291];
+    const mar = dist(p13, p14) / dist(p61, p291);
+    
+    // ── Pixel-scaled mouth stretch ──
+    const y0 = faceLandmarks[0].y;
+    const y17 = faceLandmarks[17].y;
+    browserMouthStretch = parseFloat((Math.max(0.0, y17 - y0) * 480).toFixed(2));
+    
+    // Blink detection states
+    const now = Date.now() / 1000.0;
+    if (ear < 0.20) {
+      if (!blinkState) {
+        blinkState = true;
+        blinkStartTime = now;
+      }
+    } else {
+      if (blinkState) {
+        blinkState = false;
+        const duration = now - blinkStartTime;
+        if (duration < 1.0) {
+          browserBlinks++;
+        }
+      }
+    }
+    
+    // Yawn detection states
+    if (mar > 0.50) {
+      if (!yawnState) {
+        yawnState = true;
+        yawnStartTime = now;
+      }
+    } else {
+      if (yawnState) {
+        yawnState = false;
+        const duration = now - yawnStartTime;
+        if (duration >= 1.5) {
+          browserYawns++;
+        }
+      }
+    }
+    
+    // Upload metrics to server periodically (every 500ms)
+    uploadFaceMetricsDebounced();
+  } else {
+    if (webcamBadge) {
+      webcamBadge.textContent = 'No Face';
+      webcamBadge.className = 'card-badge badge-yellow';
+    }
+  }
+}
+
+let lastFaceMetricUpload = 0;
+async function uploadFaceMetricsDebounced() {
+  const now = Date.now();
+  if (now - lastFaceMetricUpload < 500) return;
+  lastFaceMetricUpload = now;
+  
+  try {
+    await fetch('/api/browser-face-metrics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eye_aperture: browserEyeAperture,
+        mouth_stretch: browserMouthStretch,
+        blink_count: browserBlinks,
+        yawn_count: browserYawns
+      })
+    });
+  } catch (err) {
+    console.error('[TELEMETRY] Gaze upload failed:', err);
+  }
+}

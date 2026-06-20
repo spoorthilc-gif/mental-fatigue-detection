@@ -969,6 +969,18 @@
       <p>Real-time analysis of your typing behaviour to detect cognitive fatigue.</p>
     </div>
 
+    <!-- Active Typing Box for Browser Telemetry -->
+    <div class="card" style="margin-bottom: 24px; padding: 20px;">
+      <div class="card-header" style="padding-bottom: 8px;">
+        <span class="card-title">⌨️ Telemetry Typing Input</span>
+        <span class="card-badge badge-green" id="telemetryActiveBadge">Ready</span>
+      </div>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">
+        Type inside the text box below to record WPM, elapsed time, and error rates. Telemetry is processed locally and uploaded to the AI Ensemble classifier.
+      </p>
+      <textarea id="telemetryTextBox" style="width: 100%; height: 80px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 12px; font-family: inherit; font-size: 13px; resize: none; outline: none; transition: border-color 0.2s;" placeholder="Start typing here to test the live ML fatigue prediction model..."></textarea>
+    </div>
+
     <!-- Stat Summary Row -->
     <div class="stats-row">
       <div class="stat-card wpm">
@@ -1088,6 +1100,8 @@
         
         <div style="position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;">
           <img src="/video_feed" id="webcamStream" style="width: 100%; height: 100%; object-fit: cover;" alt="Live Webcam Feed">
+          <canvas id="browserWebcamCanvas" style="display: none; width: 100%; height: 100%; object-fit: cover;"></canvas>
+          <video id="browserWebcamVideo" style="display: none; width: 100%; height: 100%; object-fit: cover;" autoplay playsinline muted></video>
           <div id="webcamEmptyState" class="empty-state" style="position: absolute; inset: 0; background: #0c0f17; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5;">
             <div class="empty-icon">📷</div>
             <div class="empty-title">Webcam Offline / Locked</div>
@@ -1811,6 +1825,8 @@
     }
   </style>
 
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
   <script>
     // Trigger toast alerts for Flask flashed messages on dashboard load
